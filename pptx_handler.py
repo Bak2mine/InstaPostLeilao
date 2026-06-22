@@ -146,7 +146,7 @@ class PPTXHandler:
             print(f"    Processing slide 1...")
             slide1 = prs.slides[0]
 
-            # Delete Group 2 (the gray background) so the embedded image shows
+            # Delete Group 2 (the gray background) so the property image shows
             for shape in list(slide1.shapes):
                 if shape.name == "Group 2":
                     try:
@@ -156,6 +156,33 @@ class PPTXHandler:
                         break
                     except Exception as e:
                         print(f"    Failed to delete Group 2: {e}")
+
+            # Add the property image to slide 1 (9" width to match gray rectangle)
+            img_stream1 = BytesIO()
+            image_rgb.save(img_stream1, format='JPEG', quality=95)
+            img_stream1.seek(0)
+
+            # Resize to 9 inches width, maintain aspect ratio
+            bg_width = Inches(9.0)
+            aspect_ratio = image_rgb.width / image_rgb.height
+            bg_height = Inches(9.0 / aspect_ratio)
+
+            # Center the image on slide
+            bg_left = Inches((11.25 - 9.0) / 2)
+            bg_top = Inches((14.06 - (9.0 / aspect_ratio)) / 2)
+
+            picture_bg1 = slide1.shapes.add_picture(
+                img_stream1,
+                bg_left,
+                bg_top,
+                width=bg_width,
+                height=bg_height
+            )
+
+            # Move to position 2 (after structural elements)
+            slide1.shapes._spTree.remove(picture_bg1._element)
+            slide1.shapes._spTree.insert(2, picture_bg1._element)
+            print(f"    Added background image to slide 1 (9\" width)")
 
             # Step 3: Process Slide 2 (if it exists)
             if len(prs.slides) >= 2:
@@ -177,6 +204,37 @@ class PPTXHandler:
 
                 if deleted_count > 0:
                     print(f"    Deleted {deleted_count} freeform shapes from slide 2")
+
+                # Add the property image as background to slide 2 (9" width to match gray rectangle)
+                img_stream2 = BytesIO()
+                image_rgb.save(img_stream2, format='JPEG', quality=95)
+                img_stream2.seek(0)
+
+                # Resize to 9 inches width, maintain aspect ratio
+                # Image aspect ratio from crop_sidebars processing
+                bg_width = Inches(9.0)
+                # Calculate height based on aspect ratio of cropped image
+                # Cropped image is (width - 20% sides) x (height - 5px)
+                # Maintaining the same aspect ratio
+                aspect_ratio = image_rgb.width / image_rgb.height
+                bg_height = Inches(9.0 / aspect_ratio)
+
+                # Center the image on slide
+                bg_left = Inches((11.25 - 9.0) / 2)
+                bg_top = Inches((14.06 - (9.0 / aspect_ratio)) / 2)
+
+                picture_bg2 = slide2.shapes.add_picture(
+                    img_stream2,
+                    bg_left,
+                    bg_top,
+                    width=bg_width,
+                    height=bg_height
+                )
+
+                # Move to position 2 (behind text boxes)
+                slide2.shapes._spTree.remove(picture_bg2._element)
+                slide2.shapes._spTree.insert(2, picture_bg2._element)
+                print(f"    Added background image to slide 2 (9\" width)")
 
             # Step 4: Save presentation ONCE after all modifications
             prs.save(str(pptx_path))
