@@ -1,0 +1,10 @@
+output/
+.temp/
+imoveis/
+*.pptx
+*.pdf
+__pycache__/
+*.pyc
+.env
+.vscode/
+~$*.pptx

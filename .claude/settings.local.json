@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"imoveis\" -Filter \"*.ppt*\" -File)",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "Bash(python)",
+      "Bash(python generate_all_pdfs.py)",
+      "Bash(rm *.pptx)",
+      "Bash(python ../generate_all_pdfs.py)"
+    ]
+  }
+}

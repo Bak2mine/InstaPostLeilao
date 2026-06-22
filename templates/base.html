@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: #b0b0b0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        /* Header with logo */
+        .header {
+            background: #b0b0b0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo-bar {
+            background: linear-gradient(90deg, #0A9FD9 0%, #1BB2E8 100%);
+            padding: 15px;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo-bar::before {
+            content: "🏠";
+            font-size: 24px;
+        }
+
+        /* Main content area with sky and landscape */
+        .main-content {
+            position: relative;
+            background: linear-gradient(to bottom, #E0F6FF 0%, #B8F0FF 50%, #90E8FF 100%);
+            padding: 40px 30px;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Clouds decoration */
+        .clouds {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .cloud {
+            display: inline-block;
+            background: white;
+            border-radius: 50px;
+            margin: 0 10px;
+            opacity: 0.9;
+        }
+
+        .cloud-small {
+            width: 80px;
+            height: 40px;
+            margin-right: auto;
+            margin-left: 40px;
+            margin-top: 10px;
+        }
+
+        .cloud-large {
+            width: 120px;
+            height: 50px;
+            margin-left: auto;
+            margin-right: 80px;
+        }
+
+        /* Landscape - rolling hills */
+        .landscape {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            pointer-events: none;
+        }
+
+        .hill-light {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(135deg, #B8E041 0%, #A3D639 100%);
+            clip-path: polygon(0 30%, 10% 20%, 20% 25%, 30% 15%, 40% 20%, 50% 10%, 60% 20%, 70% 15%, 80% 25%, 90% 20%, 100% 30%, 100% 100%, 0 100%);
+        }
+
+        .hill-dark {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(135deg, #7CB220 0%, #6BA010 100%);
+            clip-path: polygon(0 40%, 15% 25%, 30% 30%, 45% 20%, 60% 30%, 75% 25%, 90% 35%, 100% 30%, 100% 100%, 0 100%);
+        }
+
+        /* Discount banner */
+        .discount-banner {
+            position: relative;
+            z-index: 10;
+            background: linear-gradient(135deg, #A3D639 0%, #8BC83D 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 18px;
+            border: 3px solid white;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .discount-banner.no-discount {
+            display: none;
+        }
+
+        /* Title and location section */
+        .info-section {
+            position: relative;
+            z-index: 20;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .titulo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #0A9FD9;
+            margin-bottom: 10px;
+        }
+
+        .localizacao {
+            font-size: 16px;
+            color: #0A9FD9;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* Pricing section */
+        .pricing-section {
+            background: #a0a0a0;
+            padding: 40px 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .pricing-box {
+            width: 100%;
+            max-width: 280px;
+        }
+
+        .price-value {
+            background: #555555;
+            border: 4px solid #0A9FD9;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .price-label {
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .time-box {
+            background: #0A9FD9;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* Single column pricing (for tipo2 and tipo4) */
+        .pricing-section.single-price {
+            grid-template-columns: 1fr;
+        }
+
+        .pricing-section.single-price .pricing-box {
+            max-width: 350px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .pricing-section {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            .titulo {
+                font-size: 24px;
+            }
+
+            .price-value {
+                font-size: 20px;
+            }
+
+            .info-section {
+                padding: 20px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with logo -->
+        <div class="header">
+            <div class="logo-bar">leiloaria smart</div>
+        </div>
+
+        <!-- Main content with sky and landscape -->
+        <div class="main-content">
+            <div class="clouds">
+                <div class="cloud cloud-small"></div>
+                <div class="cloud cloud-large"></div>
+            </div>
+
+            <div class="landscape">
+                <div class="hill-light"></div>
+                <div class="hill-dark"></div>
+            </div>
+
+            {% if desconto_pct %}
+            <div class="discount-banner">{{ desconto_pct|round(0)|int }}% DE DESCONTO!</div>
+            {% endif %}
+
+            <div class="info-section">
+                <div class="titulo">{{ titulo }}</div>
+                <div class="localizacao">{{ cidade }} / {{ estado }}</div>
+            </div>
+        </div>
+
+        <!-- Pricing section -->
+        <div class="pricing-section {% if not praca2_valor %}single-price{% endif %}">
+            {% if praca1_valor %}
+            <div class="pricing-box">
+                <div class="price-value">{{ praca1_valor }}</div>
+                <div class="price-label">1º LEILÃO: {{ data_praca1 if data_praca1 else 'TBD' }}</div>
+                <div style="text-align: center;">
+                    <div class="time-box">{{ hora_praca1 if hora_praca1 else '14:00hs' }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if praca2_valor %}
+            <div class="pricing-box">
+                <div class="price-value">{{ praca2_valor }}</div>
+                <div class="price-label">2º LEILÃO: {{ data_praca2 if data_praca2 else 'TBD' }}</div>
+                <div style="text-align: center;">
+                    <div class="time-box">{{ hora_praca2 if hora_praca2 else '14:00hs' }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
