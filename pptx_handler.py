@@ -131,7 +131,6 @@ class PPTXHandler:
             True if successful, False otherwise
         """
         try:
-            import tempfile
             from image_processor import ImageProcessor
 
             # Process image (crop + RGB conversion)
@@ -140,36 +139,8 @@ class PPTXHandler:
 
             print(f"    Image size after processing: {image_rgb.size}")
 
-            # Step 1: Replace embedded image via ZIP manipulation
-            # Different templates use different placeholders (image1.jpeg or image2.jpeg)
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_dir = Path(temp_dir)
-
-                # Extract PPTX
-                with zipfile.ZipFile(pptx_path, 'r') as zip_ref:
-                    zip_ref.extractall(temp_dir)
-
-                # Try to replace the sky placeholder (try both image1.jpeg and image2.jpeg)
-                media_dir = temp_dir / "ppt" / "media"
-                replaced = False
-                for image_file in ["image1.jpeg", "image2.jpeg"]:
-                    sky_image_path = media_dir / image_file
-                    if sky_image_path.exists():
-                        image_rgb.save(str(sky_image_path), quality=95)
-                        print(f"    Replaced embedded image: {image_file}")
-                        replaced = True
-                        break
-
-                if not replaced:
-                    print(f"    [WARN] No sky placeholder found (image1.jpeg or image2.jpeg)")
-
-                # Re-zip the PPTX
-                with zipfile.ZipFile(pptx_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for root, dirs, files in os.walk(temp_dir):
-                        for file in files:
-                            file_path = Path(root) / file
-                            arcname = file_path.relative_to(temp_dir)
-                            zipf.write(file_path, arcname)
+            # Note: We don't replace embedded images anymore - we add the property image
+            # as a full background instead. This avoids duplication issues.
 
             # Step 2: Open PPTX with python-pptx to manipulate both slides
             prs = Presentation(str(pptx_path))
