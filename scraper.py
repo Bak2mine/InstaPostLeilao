@@ -69,18 +69,20 @@ class PropertyScraper:
             html_text = response.text
 
             # Extract location from auction title: "Casa 147m² – Uberlândia/MG"
-            loc_match = re.search(r'[–-]\s*([^/\n]+)/([A-Z]{2})', auction_title)
+            # Remove location part (em dash/hyphen followed by state/city) and keep only property description
+            loc_match = re.search(r'[–—\-]\s*([^/\n]+)/([A-Z]{2})', auction_title)
             if loc_match:
                 cidade = loc_match.group(1).strip()
                 estado = loc_match.group(2).strip()
-                titulo_clean = re.sub(r'\s*[–-].*$', '', auction_title).strip()
+                # Remove everything from em dash onwards
+                titulo_clean = re.sub(r'\s*[–—\-].*$', '', auction_title).strip()
             else:
-                # Try alternative location extraction
+                # Try alternative location extraction (just city/state without dash)
                 loc_match = re.search(r'([A-Z][a-záàâãéèêíïóôõöúçñ\s]+)/([A-Z]{2})', auction_title)
                 if loc_match:
                     cidade = loc_match.group(1).strip()
                     estado = loc_match.group(2).strip()
-                    titulo_clean = re.sub(r'\s*[–-].*$', '', auction_title).strip()
+                    titulo_clean = re.sub(r'\s*[–—\-].*$', '', auction_title).strip()
                 else:
                     cidade = None
                     estado = None
