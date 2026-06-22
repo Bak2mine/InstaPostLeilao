@@ -195,16 +195,39 @@ class PPTXHandler:
                 print(f"    Processing slide 2...")
                 slide2 = prs.slides[1]
 
-                # Delete Group 2 from slide 2 as well
+                # Delete ALL non-TextBox shapes from slide 2 (decorative elements)
+                # This prevents 50+ overlapping images from showing
+                deleted_count = 0
                 for shape in list(slide2.shapes):
-                    if shape.name == "Group 2":
+                    # Keep only TextBox shapes (identified by name)
+                    if 'TextBox' not in shape.name:
                         try:
                             sp = shape.element
                             sp.getparent().remove(sp)
-                            print(f"    Deleted Group 2 from slide 2")
-                            break
+                            deleted_count += 1
                         except Exception as e:
-                            print(f"    Failed to delete Group 2 from slide 2: {e}")
+                            pass
+
+                if deleted_count > 0:
+                    print(f"    Deleted {deleted_count} decorative shapes from slide 2")
+
+                # Add the property image as background to slide 2
+                img_stream2 = BytesIO()
+                image_rgb.save(img_stream2, format='JPEG', quality=95)
+                img_stream2.seek(0)
+
+                picture_bg2 = slide2.shapes.add_picture(
+                    img_stream2,
+                    Inches(0),
+                    Inches(0),
+                    width=Inches(11.25),
+                    height=Inches(14.06)
+                )
+
+                # Move to position 2 (behind text boxes)
+                slide2.shapes._spTree.remove(picture_bg2._element)
+                slide2.shapes._spTree.insert(2, picture_bg2._element)
+                print(f"    Added background image to slide 2")
 
             # Step 4: Save presentation ONCE after all modifications
             prs.save(str(pptx_path))
