@@ -195,12 +195,12 @@ class PPTXHandler:
                 print(f"    Processing slide 2...")
                 slide2 = prs.slides[1]
 
-                # Delete ALL non-TextBox shapes from slide 2 (decorative elements)
-                # This prevents 50+ overlapping images from showing
+                # Delete Freeform shapes from slide 2 (they create overlapping lines)
+                # Keep Groups and TextBoxes (they contain frames and text)
                 deleted_count = 0
                 for shape in list(slide2.shapes):
-                    # Keep only TextBox shapes (identified by name)
-                    if 'TextBox' not in shape.name:
+                    # Only delete Freeforms (decorative lines that overlap)
+                    if 'Freeform' in shape.name:
                         try:
                             sp = shape.element
                             sp.getparent().remove(sp)
@@ -209,7 +209,7 @@ class PPTXHandler:
                             pass
 
                 if deleted_count > 0:
-                    print(f"    Deleted {deleted_count} decorative shapes from slide 2")
+                    print(f"    Deleted {deleted_count} freeform shapes from slide 2")
 
                 # Add the property image as background to slide 2
                 img_stream2 = BytesIO()
