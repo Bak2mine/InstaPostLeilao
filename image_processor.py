@@ -45,7 +45,16 @@ class ImageProcessor:
         crop_right = int(width * (1 - crop_percent))
         # Also crop 5 pixels from bottom for proper framing
         crop_bottom = height - 5
-        return image.crop((crop_left, 0, crop_right, crop_bottom))
+
+        # Crop and then resize to be narrower (squish from sides)
+        # This makes the image fit better on the slide
+        cropped = image.crop((crop_left, 0, crop_right, crop_bottom))
+
+        # Resize to 85% width while maintaining height for "squish" effect
+        new_width = int(cropped.width * 0.85)
+        cropped = cropped.resize((new_width, cropped.height), Image.Resampling.LANCZOS)
+
+        return cropped
 
     @staticmethod
     def to_rgb(image: Image.Image) -> Image.Image:
