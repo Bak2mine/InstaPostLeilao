@@ -31,7 +31,7 @@ class ImageProcessor:
 
     @staticmethod
     def crop_sidebars(image: Image.Image, crop_percent: float = IMAGE_CROP_PERCENT) -> Image.Image:
-        """Crop sidebars from image (remove blue/cyan sides)
+        """Crop sidebars from image and bottom pixels for Instagram optimization
 
         Args:
             image: PIL Image object
@@ -43,7 +43,9 @@ class ImageProcessor:
         width, height = image.size
         crop_left = int(width * crop_percent)
         crop_right = int(width * (1 - crop_percent))
-        return image.crop((crop_left, 0, crop_right, height))
+        # Also crop 5 pixels from bottom for proper framing
+        crop_bottom = height - 5
+        return image.crop((crop_left, 0, crop_right, crop_bottom))
 
     @staticmethod
     def to_rgb(image: Image.Image) -> Image.Image:
