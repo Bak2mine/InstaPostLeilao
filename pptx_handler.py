@@ -2,17 +2,12 @@
 PowerPoint template handling - text and image replacement
 """
 
-import zipfile
-import shutil
-import os
 from pathlib import Path
 from io import BytesIO
 from pptx import Presentation
-from pptx.util import Inches, Pt
-from pptx.dml.color import RGBColor
+from pptx.util import Inches
 from PIL import Image
 from typing import Optional, Dict
-from config import SLIDE_WIDTH_INCHES, SLIDE_HEIGHT_INCHES
 
 class PPTXHandler:
     """Handle PPTX template modifications - text and image replacement"""
@@ -141,35 +136,8 @@ class PPTXHandler:
 
             print(f"    Image size after processing: {image_rgb.size}")
 
-            # Step 1: Replace embedded image (image2.jpeg) via ZIP manipulation for slide 1 only
-            # Note: We only replace image2.jpeg, not image1.png, to avoid conflicts with slide 2
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_dir = Path(temp_dir)
-
-                # Extract PPTX
-                with zipfile.ZipFile(pptx_path, 'r') as zip_ref:
-                    zip_ref.extractall(temp_dir)
-
-                # Replace ONLY image2.jpeg (the main placeholder for slide 1)
-                # Do NOT replace image1.jpeg/image1.png as it's shared with slide 2
-                media_dir = temp_dir / "ppt" / "media"
-                replaced = False
-
-                sky_image_path = media_dir / "image2.jpeg"
-                if sky_image_path.exists():
-                    image_rgb.save(str(sky_image_path), quality=95)
-                    print(f"    Replaced embedded image: image2.jpeg")
-                    replaced = True
-                else:
-                    print(f"    [WARN] image2.jpeg not found in template")
-
-                # Re-zip the PPTX
-                with zipfile.ZipFile(pptx_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for root, dirs, files in os.walk(temp_dir):
-                        for file in files:
-                            file_path = Path(root) / file
-                            arcname = file_path.relative_to(temp_dir)
-                            zipf.write(file_path, arcname)
+            # Skip ZIP-based embedded image replacement
+            # We'll use picture shapes instead for cleaner control over sizing
 
             # Step 2: Open PPTX and delete Group 2 from slide 1
             # This reveals the replaced embedded image
