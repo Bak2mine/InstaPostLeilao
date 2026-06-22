@@ -210,30 +210,23 @@ class PPTXHandler:
                 if deleted_count > 0:
                     print(f"    Deleted {deleted_count} freeform shapes from slide 2")
 
-                # Add the property image as background to slide 2 (squished 75% width/height)
+                # Add the property image as background to slide 2 (full slide size)
                 img_stream2 = BytesIO()
                 image_rgb.save(img_stream2, format='JPEG', quality=95)
                 img_stream2.seek(0)
 
-                # Apply aggressive squishing to slide 2 background: 75% for all sides
-                bg_width = Inches(11.25 * 0.75)  # 75% width
-                bg_height = Inches(14.06 * 0.75)  # 75% height
-                # Center the image
-                bg_left = Inches((11.25 - (11.25 * 0.75)) / 2)
-                bg_top = Inches((14.06 - (14.06 * 0.75)) / 2)
-
                 picture_bg2 = slide2.shapes.add_picture(
                     img_stream2,
-                    bg_left,
-                    bg_top,
-                    width=bg_width,
-                    height=bg_height
+                    Inches(0),
+                    Inches(0),
+                    width=Inches(11.25),
+                    height=Inches(14.06)
                 )
 
                 # Move to position 2 (behind text boxes)
                 slide2.shapes._spTree.remove(picture_bg2._element)
                 slide2.shapes._spTree.insert(2, picture_bg2._element)
-                print(f"    Added background image to slide 2 (squished 75%)")
+                print(f"    Added background image to slide 2")
 
             # Step 4: Save presentation ONCE after all modifications
             prs.save(str(pptx_path))
