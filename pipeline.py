@@ -138,9 +138,7 @@ class PropertyPDFPipeline:
             print(f"    [ERROR] Failed to export PDF")
             return None
 
-        # Append link page
-        if not PDFExporter.append_link_page(pdf_file):
-            print(f"    [WARN] Could not append link page to PDF")
+        # No need to append link page - PPTX already has 2 complete pages
 
         print(f"    [OK] Generated: {pdf_file.name}")
         return pdf_file
