@@ -120,8 +120,9 @@ class PPTXHandler:
 
     @staticmethod
     def replace_images(pptx_path: Path, image_pil: Image.Image) -> bool:
-        """Replace embedded image (sky) via ZIP, then delete Group 2 and add background on slide 1.
-        Also replaces image on slide 2. Saves ONCE at the end.
+        """Replace embedded images (image1.jpeg or image2.jpeg) in PPTX via ZIP.
+        Delete Group 2 (gray background) so the replaced image shows through.
+        Handle both slides separately to avoid image mixing.
 
         Args:
             pptx_path: Path to PPTX file to modify
@@ -131,6 +132,7 @@ class PPTXHandler:
             True if successful, False otherwise
         """
         try:
+            import tempfile
             from image_processor import ImageProcessor
 
             # Process image (crop + RGB conversion)
@@ -139,17 +141,45 @@ class PPTXHandler:
 
             print(f"    Image size after processing: {image_rgb.size}")
 
-            # Note: We don't replace embedded images anymore - we add the property image
-            # as a full background instead. This avoids duplication issues.
+            # Step 1: Replace embedded image via ZIP manipulation
+            # Different templates use different placeholders (image1.jpeg or image2.jpeg)
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_dir = Path(temp_dir)
 
-            # Step 2: Open PPTX with python-pptx to manipulate both slides
+                # Extract PPTX
+                with zipfile.ZipFile(pptx_path, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)
+
+                # Try to replace the sky placeholder (try both image1.jpeg and image2.jpeg)
+                media_dir = temp_dir / "ppt" / "media"
+                replaced = False
+                for image_file in ["image1.jpeg", "image2.jpeg"]:
+                    sky_image_path = media_dir / image_file
+                    if sky_image_path.exists():
+                        image_rgb.save(str(sky_image_path), quality=95)
+                        print(f"    Replaced embedded image: {image_file}")
+                        replaced = True
+                        break
+
+                if not replaced:
+                    print(f"    [WARN] No sky placeholder found (image1.jpeg or image2.jpeg)")
+
+                # Re-zip the PPTX
+                with zipfile.ZipFile(pptx_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(temp_dir):
+                        for file in files:
+                            file_path = Path(root) / file
+                            arcname = file_path.relative_to(temp_dir)
+                            zipf.write(file_path, arcname)
+
+            # Step 2: Open PPTX and delete Group 2 from slide 1
+            # This reveals the replaced embedded image
             prs = Presentation(str(pptx_path))
 
-            # Process Slide 1
-            print(f"    Processing slide 1 backgrounds...")
+            print(f"    Processing slide 1...")
             slide1 = prs.slides[0]
 
-            # Delete Group 2 (the gray background) only
+            # Delete Group 2 (the gray background) so the property image shows
             for shape in list(slide1.shapes):
                 if shape.name == "Group 2":
                     try:
@@ -160,63 +190,23 @@ class PPTXHandler:
                     except Exception as e:
                         print(f"    Failed to delete Group 2: {e}")
 
-            # Step 3: Add full-slide background to slide 1 at position 2
-            img_stream = BytesIO()
-            image_rgb.save(img_stream, format='JPEG', quality=95)
-            img_stream.seek(0)
-
-            picture_bg = slide1.shapes.add_picture(
-                img_stream,
-                Inches(0),
-                Inches(0),
-                width=Inches(11.25),
-                height=Inches(14.06)
-            )
-
-            slide1.shapes._spTree.remove(picture_bg._element)
-            slide1.shapes._spTree.insert(2, picture_bg._element)
-            print(f"    Added background image to slide 1")
-
-            # Step 4: Process Slide 2 (if it exists)
+            # Step 3: Process Slide 2 (if it exists)
             if len(prs.slides) >= 2:
-                print(f"    Processing slide 2 (link page)...")
+                print(f"    Processing slide 2...")
                 slide2 = prs.slides[1]
 
-                # Remove all non-text groups from slide 2
-                groups_to_remove = ["Group 2", "Group 5", "Group 8", "Group 11", "Group 14", "Group 17"]
-                removed_count = 0
-
+                # Delete Group 2 from slide 2 as well
                 for shape in list(slide2.shapes):
-                    if shape.name in groups_to_remove:
+                    if shape.name == "Group 2":
                         try:
                             sp = shape.element
                             sp.getparent().remove(sp)
-                            removed_count += 1
-                            print(f"    Removed {shape.name}")
+                            print(f"    Deleted Group 2 from slide 2")
+                            break
                         except Exception as e:
-                            print(f"    Failed to remove {shape.name}: {e}")
+                            print(f"    Failed to delete Group 2 from slide 2: {e}")
 
-                if removed_count > 0:
-                    print(f"    Removed {removed_count} background/border groups")
-
-                # Add background to slide 2 (reuse same image)
-                img_stream2 = BytesIO()
-                image_rgb.save(img_stream2, format='JPEG', quality=95)
-                img_stream2.seek(0)
-
-                picture_bg2 = slide2.shapes.add_picture(
-                    img_stream2,
-                    Inches(0),
-                    Inches(0),
-                    width=Inches(11.25),
-                    height=Inches(14.06)
-                )
-
-                slide2.shapes._spTree.remove(picture_bg2._element)
-                slide2.shapes._spTree.insert(2, picture_bg2._element)
-                print(f"    Added background image to slide 2")
-
-            # Step 5: Save presentation ONCE after all modifications
+            # Step 4: Save presentation ONCE after all modifications
             prs.save(str(pptx_path))
             print(f"    All slides complete, saved")
 
