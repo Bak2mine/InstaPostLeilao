@@ -33,6 +33,29 @@ class PPTXHandler:
         return True
 
     @staticmethod
+    def truncate_title_for_location(title: str, location: str, max_title_length: int = 45) -> str:
+        """Truncate title to prevent overflow when combined with location.
+
+        Args:
+            title: Full title text
+            location: Location in format "CITY/STATE"
+            max_title_length: Maximum characters allowed for title
+
+        Returns:
+            Truncated title if needed, otherwise original title
+        """
+        # If title + location would exceed limits, truncate title
+        if len(title) > max_title_length:
+            # Truncate to max_title_length and remove trailing incomplete words
+            truncated = title[:max_title_length].rstrip()
+            # Remove any trailing partial words (cut at last space)
+            last_space = truncated.rfind(' ')
+            if last_space > 0:
+                truncated = truncated[:last_space]
+            return truncated.rstrip('m²').strip() + 'm²' if 'm²' in title else truncated
+        return title
+
+    @staticmethod
     def modify_text(template_pptx: Path, property_data: Dict, output_pptx: Path) -> Path:
         """Modify text in PPTX while preserving formatting
 
@@ -57,8 +80,11 @@ class PPTXHandler:
         desconto_text = f"{int(desconto_pct)}% DE DESCONTO!" if desconto_pct else "20% DE DESCONTO!"
 
         # Text replacement mapping for all template types
-        new_title = property_data.get('titulo', '')
+        raw_title = property_data.get('titulo', '')
         location = f"{property_data.get('cidade', '')}/{property_data.get('estado', '')}"
+
+        # Truncate title if it would overflow with location
+        new_title = PPTXHandler.truncate_title_for_location(raw_title, location)
 
         replacements = {
             # Title placeholders (different templates have different defaults)
