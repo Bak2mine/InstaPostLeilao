@@ -33,26 +33,26 @@ class PPTXHandler:
         return True
 
     @staticmethod
-    def truncate_title_for_location(title: str, location: str, max_title_length: int = 45) -> str:
-        """Truncate title to prevent overflow when combined with location.
+    def truncate_title_for_overflow(title: str, max_title_length: int = 50) -> str:
+        """Truncate title to prevent overflow in PowerPoint text boxes.
 
         Args:
-            title: Full title text
-            location: Location in format "CITY/STATE"
+            title: Title text (should not contain city/state)
             max_title_length: Maximum characters allowed for title
 
         Returns:
             Truncated title if needed, otherwise original title
         """
-        # If title + location would exceed limits, truncate title
         if len(title) > max_title_length:
-            # Truncate to max_title_length and remove trailing incomplete words
+            # Cut at max length and remove trailing incomplete words
             truncated = title[:max_title_length].rstrip()
-            # Remove any trailing partial words (cut at last space)
             last_space = truncated.rfind(' ')
             if last_space > 0:
                 truncated = truncated[:last_space]
-            return truncated.rstrip('m²').strip() + 'm²' if 'm²' in title else truncated
+            # Preserve m² unit if present
+            if 'm²' in title:
+                truncated = truncated.rstrip('m').rstrip() + ' m²'
+            return truncated.strip()
         return title
 
     @staticmethod
@@ -83,8 +83,8 @@ class PPTXHandler:
         raw_title = property_data.get('titulo', '')
         location = f"{property_data.get('cidade', '')}/{property_data.get('estado', '')}"
 
-        # Truncate title if it would overflow with location
-        new_title = PPTXHandler.truncate_title_for_location(raw_title, location)
+        # Truncate title if it's too long for the PowerPoint text box
+        new_title = PPTXHandler.truncate_title_for_overflow(raw_title)
 
         replacements = {
             # Title placeholders (different templates have different defaults)
