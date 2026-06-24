@@ -120,9 +120,7 @@ class PPTXHandler:
 
     @staticmethod
     def replace_images(pptx_path: Path, image_pil: Image.Image) -> bool:
-        """Replace embedded images (image1.jpeg or image2.jpeg) in PPTX via ZIP.
-        Delete Group 2 (gray background) so the replaced image shows through.
-        Handle both slides separately to avoid image mixing.
+        """Replace placeholder images via ZIP and delete overlaying elements.
 
         Args:
             pptx_path: Path to PPTX file to modify
@@ -139,10 +137,12 @@ class PPTXHandler:
             image_cropped = ImageProcessor.crop_sidebars(image_pil)
             image_rgb = ImageProcessor.to_rgb(image_cropped)
 
+            # Resize to match template dimensions (1438x560)
+            image_rgb = image_rgb.resize((1438, 560), Image.Resampling.LANCZOS)
+
             print(f"    Image size after processing: {image_rgb.size}")
 
-            # Step 1: Replace embedded image (image2.jpeg) via ZIP manipulation for slide 1 only
-            # Note: We only replace image2.jpeg, not image1.png, to avoid conflicts with slide 2
+            # Step 1: Replace embedded images via ZIP
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_dir = Path(temp_dir)
 
@@ -150,18 +150,27 @@ class PPTXHandler:
                 with zipfile.ZipFile(pptx_path, 'r') as zip_ref:
                     zip_ref.extractall(temp_dir)
 
-                # Replace ONLY image2.jpeg (the main placeholder for slide 1)
-                # Do NOT replace image1.jpeg/image1.png as it's shared with slide 2
                 media_dir = temp_dir / "ppt" / "media"
-                replaced = False
 
-                sky_image_path = media_dir / "image2.jpeg"
-                if sky_image_path.exists():
-                    image_rgb.save(str(sky_image_path), quality=95)
-                    print(f"    Replaced embedded image: image2.jpeg")
-                    replaced = True
+                # Check which image files exist to determine template type
+                has_image1_jpeg = (media_dir / "image1.jpeg").exists()
+                is_two_auctions = has_image1_jpeg
+
+                print(f"    Template type: {'2 praças' if is_two_auctions else '1 praça'}")
+
+                # Replace the appropriate placeholder image
+                if is_two_auctions:
+                    # For 2 praças: replace image1.jpeg
+                    image1_path = media_dir / "image1.jpeg"
+                    if image1_path.exists():
+                        image_rgb.save(str(image1_path), quality=95)
+                        print(f"    Replaced image1.jpeg")
                 else:
-                    print(f"    [WARN] image2.jpeg not found in template")
+                    # For 1 praça: replace image2.jpeg
+                    image2_path = media_dir / "image2.jpeg"
+                    if image2_path.exists():
+                        image_rgb.save(str(image2_path), quality=95)
+                        print(f"    Replaced image2.jpeg")
 
                 # Re-zip the PPTX
                 with zipfile.ZipFile(pptx_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -171,37 +180,41 @@ class PPTXHandler:
                             arcname = file_path.relative_to(temp_dir)
                             zipf.write(file_path, arcname)
 
-            # Step 2: Open PPTX and delete Group 2 from slide 1
-            # This reveals the replaced embedded image
+            # Open PPTX and handle slides
             prs = Presentation(str(pptx_path))
 
             print(f"    Processing slide 1...")
             slide1 = prs.slides[0]
 
-            # Delete Group 2 (the gray background) so the property image shows
+            # Delete Group 2 (the gray background overlay on slide 1)
             for shape in list(slide1.shapes):
                 if shape.name == "Group 2":
                     try:
                         sp = shape.element
                         sp.getparent().remove(sp)
-                        print(f"    Deleted Group 2 (gray background)")
+                        print(f"    Deleted Group 2 from slide 1")
                         break
                     except Exception as e:
-                        print(f"    Failed to delete Group 2: {e}")
+                        pass
 
-            # Add the property image to slide 1 (9" width to match gray rectangle)
+            # Add full-page background image to slide 1
             img_stream1 = BytesIO()
             image_rgb.save(img_stream1, format='JPEG', quality=95)
             img_stream1.seek(0)
 
-            # Resize to 9 inches width, maintain aspect ratio
-            bg_width = Inches(9.0)
-            aspect_ratio = image_rgb.width / image_rgb.height
-            bg_height = Inches(9.0 / aspect_ratio)
-
-            # Center the image on slide
-            bg_left = Inches((11.25 - 9.0) / 2)
-            bg_top = Inches((14.06 - (9.0 / aspect_ratio)) / 2)
+            # For 2-praça: full page background. For 1-praça: smaller background (9" width)
+            if is_two_auctions:
+                bg_width = Inches(11.25)
+                bg_height = Inches(14.06)
+                bg_left = Inches(0)
+                bg_top = Inches(0)
+            else:
+                # For 1-praça: center a 9" wide image to not cover the embedded image
+                bg_width = Inches(9.0)
+                aspect_ratio = image_rgb.width / image_rgb.height
+                bg_height = Inches(9.0 / aspect_ratio)
+                bg_left = Inches((11.25 - 9.0) / 2)
+                bg_top = Inches((14.06 - (9.0 / aspect_ratio)) / 2)
 
             picture_bg1 = slide1.shapes.add_picture(
                 img_stream1,
@@ -211,21 +224,31 @@ class PPTXHandler:
                 height=bg_height
             )
 
-            # Move to position 2 (after structural elements)
+            # Move to position 2 (behind other elements but in front of base)
             slide1.shapes._spTree.remove(picture_bg1._element)
             slide1.shapes._spTree.insert(2, picture_bg1._element)
-            print(f"    Added background image to slide 1 (9\" width)")
+            print(f"    Added background image to slide 1")
 
-            # Step 3: Process Slide 2 (if it exists)
+            # Process Slide 2 (if it exists)
             if len(prs.slides) >= 2:
                 print(f"    Processing slide 2...")
                 slide2 = prs.slides[1]
 
-                # Delete Freeform shapes from slide 2 (they create overlapping lines)
-                # Keep Groups and TextBoxes (they contain frames and text)
+                # Delete Group 2 (gray background overlay)
+                for shape in list(slide2.shapes):
+                    if shape.name == "Group 2":
+                        try:
+                            sp = shape.element
+                            sp.getparent().remove(sp)
+                            print(f"    Deleted Group 2 from slide 2")
+                            break
+                        except Exception as e:
+                            pass
+
+                # Delete all Freeforms on slide 2 (decorative lines and background images)
+                # Keep Groups (they're the price/discount frames) and TextBoxes
                 deleted_count = 0
                 for shape in list(slide2.shapes):
-                    # Only delete Freeforms (decorative lines that overlap)
                     if 'Freeform' in shape.name:
                         try:
                             sp = shape.element
@@ -233,42 +256,41 @@ class PPTXHandler:
                             deleted_count += 1
                         except Exception as e:
                             pass
-
                 if deleted_count > 0:
-                    print(f"    Deleted {deleted_count} freeform shapes from slide 2")
+                    print(f"    Deleted {deleted_count} freeforms from slide 2")
 
-                # Add the property image as background to slide 2 (9" width to match gray rectangle)
+                # Add background image to slide 2
                 img_stream2 = BytesIO()
                 image_rgb.save(img_stream2, format='JPEG', quality=95)
                 img_stream2.seek(0)
 
-                # Resize to 9 inches width, maintain aspect ratio
-                # Image aspect ratio from crop_sidebars processing
-                bg_width = Inches(9.0)
-                # Calculate height based on aspect ratio of cropped image
-                # Cropped image is (width - 20% sides) x (height - 5px)
-                # Maintaining the same aspect ratio
-                aspect_ratio = image_rgb.width / image_rgb.height
-                bg_height = Inches(9.0 / aspect_ratio)
-
-                # Center the image on slide
-                bg_left = Inches((11.25 - 9.0) / 2)
-                bg_top = Inches((14.06 - (9.0 / aspect_ratio)) / 2)
+                # For 2-praça: full page. For 1-praça: smaller (9" width)
+                if is_two_auctions:
+                    bg_width_s2 = Inches(11.25)
+                    bg_height_s2 = Inches(14.06)
+                    bg_left_s2 = Inches(0)
+                    bg_top_s2 = Inches(0)
+                else:
+                    bg_width_s2 = Inches(9.0)
+                    aspect_ratio = image_rgb.width / image_rgb.height
+                    bg_height_s2 = Inches(9.0 / aspect_ratio)
+                    bg_left_s2 = Inches((11.25 - 9.0) / 2)
+                    bg_top_s2 = Inches((14.06 - (9.0 / aspect_ratio)) / 2)
 
                 picture_bg2 = slide2.shapes.add_picture(
                     img_stream2,
-                    bg_left,
-                    bg_top,
-                    width=bg_width,
-                    height=bg_height
+                    bg_left_s2,
+                    bg_top_s2,
+                    width=bg_width_s2,
+                    height=bg_height_s2
                 )
 
-                # Move to position 2 (behind text boxes)
+                # Move to position 2 (behind frames/text)
                 slide2.shapes._spTree.remove(picture_bg2._element)
                 slide2.shapes._spTree.insert(2, picture_bg2._element)
-                print(f"    Added background image to slide 2 (9\" width)")
+                print(f"    Added background image to slide 2")
 
-            # Step 4: Save presentation ONCE after all modifications
+            # Save presentation
             prs.save(str(pptx_path))
             print(f"    All slides complete, saved")
 

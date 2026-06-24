@@ -35,7 +35,7 @@ TEMPLATES = {
         'description': 'Two auctions without discount'
     },
     'tipo4': {  # Uma praça sem desconto
-        'pptx': POST_DIR / "1pracD.pptx",
+        'pptx': POST_DIR / "tipo4.pptx",
         'description': 'Single auction without discount'
     }
 }
