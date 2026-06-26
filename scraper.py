@@ -68,23 +68,30 @@ class PropertyScraper:
             response.encoding = 'utf-8'
             html_text = response.text
 
-            # Extract location from auction title: "Casa 147m² – Uberlândia/MG"
-            # First, try to find city/state pattern at the end (after dash/em-dash)
-            loc_match = re.search(r'([A-Z][a-záàâãéèêíïóôõöúçñ\s]+)/([A-Z]{2})(?:\s|$)', auction_title)
+            # Extract location from auction title: "Casa 147m² – Uberlândia/MG" or "Casa 190m² São Paulo/SP"
+            # Match multi-word city names with capital letters (e.g., São Paulo, Rio de Janeiro)
+            # Pattern: (Capital Letter + lowercase letters) optionally followed by more space-separated capitalized words
+            # Then: optional space + / + optional space + 2-letter state code + trailing constraint
+
+            # First pass: strict with non-greedy + trailing constraints
+            loc_match = re.search(
+                r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+[A-Z][a-záàâãéèêíïóôõöúçñ]*)*)\s*/\s*([A-Z]{2})(?:\s|–|—|\-|$)',
+                auction_title, re.UNICODE
+            )
             if loc_match:
                 cidade = loc_match.group(1).strip()
                 estado = loc_match.group(2).strip()
-                # Remove everything from the city/state onwards (including the separator before it)
                 titulo_clean = re.sub(r'\s*[–—\-]?\s*' + re.escape(cidade) + r'/[A-Z]{2}.*$', '', auction_title).strip()
             else:
-                # Second pass: if first extraction failed, look for slash pattern anywhere
-                # Handles cases like "Terrenos em Condomínio até 199m² Teresina/PI"
-                slash_match = re.search(r'([A-Z][a-záàâãéèêíïóôõöúçñ\s]+?)/([A-Z]{2})', auction_title)
+                # Fallback: flexible pattern without strict trailing constraints
+                slash_match = re.search(
+                    r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+[A-Z][a-záàâãéèêíïóôõöúçñ]*)*)\s*/\s*([A-Z]{2})',
+                    auction_title, re.UNICODE
+                )
                 if slash_match:
                     cidade = slash_match.group(1).strip()
                     estado = slash_match.group(2).strip()
-                    # Remove location from title (everything from city/state onward)
-                    titulo_clean = re.sub(r'\s*' + re.escape(cidade) + r'/[A-Z]{2}.*$', '', auction_title).strip()
+                    titulo_clean = re.sub(r'[\s–—\-]*' + re.escape(cidade) + r'/[A-Z]{2}.*$', '', auction_title).strip()
                 else:
                     cidade = None
                     estado = None
