@@ -69,13 +69,14 @@ class PropertyScraper:
             html_text = response.text
 
             # Extract location from auction title: "Casa 147m² – Uberlândia/MG" or "Casa 190m² São Paulo/SP"
-            # Match multi-word city names with capital letters (e.g., São Paulo, Rio de Janeiro)
-            # Pattern: (Capital Letter + lowercase letters) optionally followed by more space-separated capitalized words
+            # Match multi-word city names (e.g., São Paulo, Rio de Janeiro)
+            # Pattern: Capital letter + letters, optionally followed by more words (capital OR lowercase)
+            # Handles: São Paulo (capital-capital), Rio de Janeiro (capital-lowercase-capital), etc.
             # Then: optional space + / + optional space + 2-letter state code + trailing constraint
 
             # First pass: strict with non-greedy + trailing constraints
             loc_match = re.search(
-                r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+[A-Z][a-záàâãéèêíïóôõöúçñ]*)*)\s*/\s*([A-Z]{2})(?:\s|–|—|\-|$)',
+                r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+(?:[A-Z]|de|do|da|dos|das)?[a-záàâãéèêíïóôõöúçñ]+)*)\s*/\s*([A-Z]{2})(?:\s|–|—|\-|$)',
                 auction_title, re.UNICODE
             )
             if loc_match:
@@ -85,7 +86,7 @@ class PropertyScraper:
             else:
                 # Fallback: flexible pattern without strict trailing constraints
                 slash_match = re.search(
-                    r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+[A-Z][a-záàâãéèêíïóôõöúçñ]*)*)\s*/\s*([A-Z]{2})',
+                    r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+(?:[A-Z]|de|do|da|dos|das)?[a-záàâãéèêíïóôõöúçñ]+)*)\s*/\s*([A-Z]{2})',
                     auction_title, re.UNICODE
                 )
                 if slash_match:
