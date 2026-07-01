@@ -3,12 +3,24 @@ Configuration and constants for the Leiloaria PDF/PPTX generation pipeline
 """
 
 from pathlib import Path
+import sys
+import os
 
-# Base paths
-POST_DIR = Path(r"C:\Users\andre\Desktop\Leiloaria\Post")
-IMOVEIS_DIR = POST_DIR / "imoveis"
-OUTPUT_DIR = POST_DIR / "output"
-TEMP_DIR = POST_DIR / ".temp"
+# When running as PyInstaller EXE, templates are in a temporary directory
+# But we want output files to go to the current working directory (where user runs the EXE)
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    # Running as bundled EXE
+    TEMPLATE_DIR = Path(sys._MEIPASS) / 'Post'  # Templates inside EXE
+    USER_DIR = Path.cwd()  # Current working directory (where EXE was run from)
+else:
+    # Running as Python script
+    TEMPLATE_DIR = Path(__file__).parent
+    USER_DIR = Path(__file__).parent
+
+POST_DIR = TEMPLATE_DIR  # For template lookup
+IMOVEIS_DIR = USER_DIR / "imoveis"
+OUTPUT_DIR = USER_DIR / "output"
+TEMP_DIR = USER_DIR / ".temp"
 
 # Create directories if they don't exist
 for directory in [IMOVEIS_DIR, OUTPUT_DIR, TEMP_DIR]:

@@ -1,0 +1,52 @@
+================================================================================
+  LEILOARIA PROPERTY PDF GENERATOR - QUICK START
+================================================================================
+
+FOR END USERS (No Python Needed)
+────────────────────────────────
+
+1. INSTALL ONCE:
+   • LibreOffice: https://www.libreoffice.org/download/
+   • ImageMagick: https://imagemagick.org/script/download.php#windows
+
+2. SETUP FOLDER:
+   C:\leiloaria\
+   ├── leiloaria-generator.exe
+   ├── 1 e 2 praça.pptx
+   ├── 2praca.pptx
+   ├── 1prac.pptx
+   └── tipo4.pptx
+
+3. RUN:
+   Double-click leiloaria-generator.exe
+
+   OR from Command Prompt:
+
+   leiloaria-generator.exe                    # Process all
+   leiloaria-generator.exe --limit 10         # First 10 only
+   leiloaria-generator.exe --skip 50 --limit 20  # Skip 50, then 20
+
+4. OUTPUT:
+   Check output/ folder for PNG images (ready for Instagram)
+
+NEED HELP?
+──────────
+• Read DISTRIBUTE.md for detailed troubleshooting
+• Verify LibreOffice and ImageMagick are installed
+• Check internet connection
+• Ensure all 4 PPTX templates are present
+
+================================================================================
+FOR DEVELOPERS (Building from Python)
+──────────────────────────────────────
+
+Install PyInstaller once:
+  pip install pyinstaller
+
+Build EXE:
+  cd Post/
+  python build_exe.py
+
+Output: dist/leiloaria-generator.exe
+
+================================================================================

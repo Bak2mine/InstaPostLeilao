@@ -74,25 +74,25 @@ class PropertyScraper:
             # Handles: São Paulo (capital-capital), Rio de Janeiro (capital-lowercase-capital), etc.
             # Then: optional space + / + optional space + 2-letter state code + trailing constraint
 
-            # First pass: strict with non-greedy + trailing constraints
+            # First pass: strict with non-greedy + trailing constraints (case-insensitive)
             loc_match = re.search(
                 r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+(?:[A-Z]|de|do|da|dos|das)?[a-záàâãéèêíïóôõöúçñ]+)*)\s*/\s*([A-Z]{2})(?:\s|–|—|\-|$)',
-                auction_title, re.UNICODE
+                auction_title, re.UNICODE | re.IGNORECASE
             )
             if loc_match:
                 cidade = loc_match.group(1).strip()
                 estado = loc_match.group(2).strip()
-                titulo_clean = re.sub(r'\s*[–—\-]?\s*' + re.escape(cidade) + r'/[A-Z]{2}.*$', '', auction_title).strip()
+                titulo_clean = re.sub(r'\s*[–—\-]?\s*' + re.escape(cidade) + r'/[A-Z]{2}.*$', '', auction_title, flags=re.IGNORECASE).strip()
             else:
-                # Fallback: flexible pattern without strict trailing constraints
+                # Fallback: flexible pattern without strict trailing constraints (case-insensitive)
                 slash_match = re.search(
                     r'([A-Z][a-záàâãéèêíïóôõöúçñ]*(?:\s+(?:[A-Z]|de|do|da|dos|das)?[a-záàâãéèêíïóôõöúçñ]+)*)\s*/\s*([A-Z]{2})',
-                    auction_title, re.UNICODE
+                    auction_title, re.UNICODE | re.IGNORECASE
                 )
                 if slash_match:
                     cidade = slash_match.group(1).strip()
                     estado = slash_match.group(2).strip()
-                    titulo_clean = re.sub(r'[\s–—\-]*' + re.escape(cidade) + r'/[A-Z]{2}.*$', '', auction_title).strip()
+                    titulo_clean = re.sub(r'[\s–—\-]*' + re.escape(cidade) + r'/[A-Z]{2}.*$', '', auction_title, flags=re.IGNORECASE).strip()
                 else:
                     cidade = None
                     estado = None
@@ -114,8 +114,8 @@ class PropertyScraper:
                 'auction_url': auction_url,
             }
 
-            # Extract discount percentage
-            desconto_match = re.search(r'Desconto:\s*aproximadamente\s*([\d.,]+)%', html_text)
+            # Extract discount percentage (with or without "aproximadamente")
+            desconto_match = re.search(r'Desconto:\s*(?:aproximadamente\s+)?([\d.,]+)%', html_text, re.IGNORECASE)
             if desconto_match:
                 pct_str = desconto_match.group(1).replace(',', '.')
                 try:

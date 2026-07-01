@@ -12,7 +12,7 @@ from config import TEMPLATES, OUTPUT_DIR
 from scraper import PropertyScraper
 from image_processor import ImageProcessor
 from pptx_handler import PPTXHandler
-from pdf_exporter import PDFExporter
+from pdf_exporter import ImageExporter
 
 class PropertyPDFPipeline:
     """Complete automated pipeline for property PDF generation"""
@@ -82,10 +82,27 @@ class PropertyPDFPipeline:
             print(f"    [ERROR] Template not found: {template_pptx}")
             return None
 
-        # Prepare output filenames
-        safe_title = self.sanitize_filename(auction['title'])
-        pptx_path = self.output_dir / f"{safe_title}.pptx"
-        pdf_path = self.output_dir / f"{safe_title}.pdf"
+        # Prepare output filenames with location in parentheses for identification
+        # Note: Windows doesn't allow "/" in filenames, so we use "-" as separator
+        safe_title = self.sanitize_filename(property_data['titulo'])
+        location = property_data.get('cidade') and property_data.get('estado')
+
+        if location:
+            base_filename = f"{safe_title} ({property_data['cidade']}-{property_data['estado']})"
+        else:
+            base_filename = safe_title
+
+        # Handle duplicates by appending counter if file exists
+        pptx_path = self.output_dir / f"{base_filename}.pptx"
+        pdf_path = self.output_dir / f"{base_filename}.pdf"
+
+        counter = 2
+        original_pptx = pptx_path
+        while pptx_path.exists():
+            base_with_counter = f"{base_filename} [{counter}]"
+            pptx_path = self.output_dir / f"{base_with_counter}.pptx"
+            pdf_path = self.output_dir / f"{base_with_counter}.pdf"
+            counter += 1
 
         print(f"    [1/5] Modifying PPTX text...")
         try:
@@ -131,17 +148,15 @@ class PropertyPDFPipeline:
         else:
             print(f"    [WARN] Skipped image replacement (no image available)")
 
-        # Export to PDF
-        print(f"    [5/5] Exporting to PDF...")
-        pdf_file = PDFExporter.pptx_to_pdf(pptx_path, self.output_dir)
-        if not pdf_file:
-            print(f"    [ERROR] Failed to export PDF")
+        # Export to PNG images for Instagram
+        print(f"    [5/5] Exporting to PNG for Instagram...")
+        png_files = ImageExporter.pptx_to_png(pptx_path, self.output_dir)
+        if not png_files:
+            print(f"    [ERROR] Failed to export PNG images for: {auction['title']}")
             return None
 
-        # No need to append link page - PPTX already has 2 complete pages
-
-        print(f"    [OK] Generated: {pdf_file.name}")
-        return pdf_file
+        print(f"    [OK] Generated {len(png_files)} images: {', '.join([f.name for f in png_files])}")
+        return png_files[0] if png_files else None
 
     def run(self, limit: Optional[int] = None, skip_count: int = 0) -> int:
         """Run complete pipeline
